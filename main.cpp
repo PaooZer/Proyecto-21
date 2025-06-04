@@ -162,5 +162,59 @@ void dibujarBotonRedondeado(SDL_Renderer* renderer, SDL_Rect rect, SDL_Color col
     renderTexto(texto, rect, colorTexto, renderer, font);
 }
 
+void mostrarAcercaDe(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonVolver, int mouseX, int mouseY) {
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    const char* titulo = "<3 Acerca de nosotros <3";
+    SDL_Color colorTitulo = {255, 255, 255, 255};
+
+    SDL_Surface* tituloSurface = TTF_RenderText_Blended(font, titulo, colorTitulo);
+    SDL_Texture* tituloTexture = SDL_CreateTextureFromSurface(renderer, tituloSurface);
+
+
+    int ventanaAncho = 800;
+    int tituloX = (ventanaAncho - tituloSurface->w) / 2;
+    SDL_Rect tituloRect = { tituloX, 30, tituloSurface->w, tituloSurface->h};
+    SDL_RenderCopy(renderer, tituloTexture, NULL, &tituloRect);
+
+    SDL_FreeSurface(tituloSurface);
+    SDL_DestroyTexture(tituloTexture);
+
+    SDL_Surface* collageSurface = IMG_Load("imagenes/chavas.png");
+    if (collageSurface) {
+        SDL_Texture* collageTexture = SDL_CreateTextureFromSurface(renderer, collageSurface);
+
+        int imgW = collageSurface->w;
+        int imgH = collageSurface->h;
+
+        float scaleX = 800.0f / imgW;
+        float scaleY = 600.0f / imgH;
+        float scale = (scaleX < scaleY) ? scaleX : scaleY;
+
+        int newW = imgW * scale;
+        int newH = imgH * scale;
+
+        SDL_Rect dstRect = {
+            (800 - newW) / 2,
+            (600 - newH) / 2,
+            newW,
+            newH
+        };
+
+        SDL_RenderCopy(renderer, collageTexture, NULL, &dstRect);
+
+        SDL_FreeSurface(collageSurface);
+        SDL_DestroyTexture(collageTexture);
+    }
+
+    SDL_Color volverColor = estaEncima(botonVolver, mouseX, mouseY) ? SDL_Color{180,180,180,255} : SDL_Color{100,100,100,255};
+    dibujarBotonRedondeado(renderer, botonVolver, volverColor, "Volver", SDL_Color{255,255,255,255}, font);
+}
+
+
+
+
 
 
