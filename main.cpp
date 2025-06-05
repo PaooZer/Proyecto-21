@@ -46,6 +46,13 @@ void renderTexto(const char* texto, SDL_Rect& rect, SDL_Color color, SDL_Rendere
 void dibujarBotonRedondeado(SDL_Renderer* renderer, SDL_Rect rect, SDL_Color color, const char* texto, SDL_Color colorTexto, TTF_Font* font);
 void mostrarAcercaDe(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonVolver, int mouseX, int mouseY); //hay que progamarla y agregar boton de volver
 void mostrarVentanaRegistro(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonEmpezar, int mouseX, int mouseY, string& nombreJugador, bool& entradaActiva);
+///////////////////////
+void iniciarNuevaPartida();  // inicializa todo para empezar una nueva ronda
+void crearBaraja(vector<Carta>& mazo); // crea y devuelve las cartas
+void barajearMazo(vector<Carta>& mazo); // barajea las cartas
+void MostrarCartas(SDL_Renderer* renderer);
+Carta DarCarta(vector<Carta>& baraja);   //da una carta de la baraja y la elimina del vector
+int calcularPuntaje(const vector<Carta>& mano); // calcula el valor total de una mano
 
 // ***** VARIABLES GLOBALES *****
 
@@ -54,7 +61,9 @@ SDL_Renderer* renderer = nullptr;
 TTF_Font* font = nullptr;
 SDL_Texture* fondoTexture = nullptr;
 SDL_Texture* cartaReverso = nullptr;
-juegoBlackJack juego;
+vector<Carta> baraja;
+vector<Carta> manoJugador;
+vector<Carta> manoDealer;
 
 
 // ***** MAIN *****
@@ -273,6 +282,8 @@ void mostrarAcercaDe(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonVolve
     SDL_Color volverColor = estaEncima(botonVolver, mouseX, mouseY) ? SDL_Color{180,180,180,255} : SDL_Color{100,100,100,255};
     dibujarBotonRedondeado(renderer, botonVolver, volverColor, "Volver", SDL_Color{255,255,255,255}, font);
 }
+
+
 void mostrarVentanaRegistro(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonEmpezar, int mouseX, int mouseY, string& nombreJugador, bool& entradaActiva) {
     //fondo negro
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -294,6 +305,32 @@ void mostrarVentanaRegistro(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect bot
     SDL_Color colorBoton = estaEncima(botonEmpezar, mouseX, mouseY) ? SDL_Color{180, 180, 180, 255} : SDL_Color{100, 100, 100, 255};
     dibujarBotonRedondeado(renderer, botonEmpezar, colorBoton, "Empezar", {255, 255, 255}, font);
 }
+
+void crearBaraja(vector<Carta>& mazo){
+    vector<string> palos = {"corazon", "picas", "trebol", "diamante"};
+    vector<string> nombres = {"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"};
+
+    for (int i = 0; i < palos.size(); ++i){
+        for (int j = 0; j < nombres.size(); ++j){
+            Carta carta;
+            carta.nombre = nombres[j];
+
+            //asignar el valor de la carta
+            if (nombres[j] == "A") {
+                carta.valor = 11;
+            } else if (nombres[j] == "J" || nombres[j] == "Q" || nombres[j] == "K") {
+                carta.valor = 10;
+            } else {
+                carta.valor = stoi(nombres[j]); //convierte "2"-"10" en número
+            }
+
+            carta.rutaImagen = "imagenes/cartas/" + nombres[j] + "_" + palos[i] + ".png";
+
+            mazo.push_back(carta); //agrega la carta c al final del vector "mazo"
+        }
+    }
+}
+
 
 
 
