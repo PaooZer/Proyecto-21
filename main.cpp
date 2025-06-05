@@ -62,25 +62,21 @@ int main(int argc, char* argv[]) {
     if (!inicializar()) return 1;
 
     bool quit = false;
-    SDL_Rect botonPlay = { 300, 360, 200, 60 }; // Botón PLAY centrado
-    SDL_Rect botonNueva = { 300, 360, 200, 60 };
-    SDL_Rect botonCargar = { 300, 440, 200, 60 };
-    SDL_Rect botonAcerca = { 260, 520, 280, 60 };
-    SDL_Rect botonVolver = { 50, 520, 150, 50 };
+    SDL_Rect botonEmpezar = { 300, 360, 200, 60 };
+    SDL_Rect botonNueva   = { 300, 360, 200, 60 };
+    SDL_Rect botonCargar  = { 300, 440, 200, 60 };
+    SDL_Rect botonAcerca  = { 260, 520, 280, 60 };
+    SDL_Rect botonVolver  = { 50, 520, 150, 50 };
     SDL_Rect botonEmpezarJuego = { SCREEN_WIDTH - 150 - 20, SCREEN_HEIGHT - 50 - 20, 150, 50 }; // Botón Empezar en la esquina inferior derecha
 
-     string nombreInput = "";
+    string nombreInput = "";
     bool entradaActiva = false;
     srand(time(NULL));
 
     EstadoJuego estado = MENU_INICIAL;
     bool quit = false;
 
-    SDL_Rect botonEmpezar = { 300, 360, 200, 60 };
-    SDL_Rect botonNueva   = { 300, 360, 200, 60 };
-    SDL_Rect botonCargar  = { 300, 440, 200, 60 };
-    SDL_Rect botonAcerca  = { 260, 520, 280, 60 };
-    SDL_Rect botonVolver  = { 50, 520, 150, 50 };
+   
 
     while (!quit) {
         int mouseX, mouseY;
@@ -97,8 +93,8 @@ int main(int argc, char* argv[]) {
                 if (estado == MENU_INICIAL && estaEncima(botonEmpezar, x, y)) {
                     estado = MENU_PRINCIPAL;
                 } else if (estado == MENU_PRINCIPAL) {
-                    if (estaEncima(botonNueva, x, y)) cout << "Nueva partida\n";
-                    if (estaEncima(botonCargar, x, y)) cout << "Cargar partida\n";
+                    if (estaEncima(botonNueva, x, y)) estado = NUEVA_PARTIDA;
+                    if (estaEncima(botonCargar, x, y)) estado = CARGAR_PARTIDA;
                     if (estaEncima(botonAcerca, x, y)) estado = ACERCA_DE_NOSOTROS;
                 } else if (estado == ACERCA_DE_NOSOTROS && estaEncima(botonVolver, x, y)) {
                     estado = MENU_PRINCIPAL;
