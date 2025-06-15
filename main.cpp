@@ -61,9 +61,7 @@ SDL_Renderer* renderer = nullptr;
 TTF_Font* font = nullptr;
 SDL_Texture* fondoTexture = nullptr;
 SDL_Texture* cartaReverso = nullptr;
-vector<Carta> baraja;
-vector<Carta> manoJugador;
-vector<Carta> manoDealer;
+
 
 
 // ***** MAIN *****
