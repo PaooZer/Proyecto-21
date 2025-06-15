@@ -354,6 +354,15 @@ void crearBaraja(vector<Carta>& mazo){
     }
 }
 
+void barajearMazo(vector<Carta>& mazo){
+    int n;
+    n = mazo.size();
+    for (int i = n - 1; i > 0; --i){
+        int j = rand() % (i + 1); // Numero aleatorio entre 0 e i
+        swap(mazo[i], mazo[j]); // Para intercambiar las cartas de posicion
+    }
+}
+
 
 
 
