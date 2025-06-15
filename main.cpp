@@ -331,6 +331,31 @@ void crearBaraja(vector<Carta>& mazo){
     }
 }
 
+void crearBaraja(vector<Carta>& mazo){
+    vector<string> palos = {"corazon", "picas", "trebol", "diamante"};
+    vector<string> nombres = {"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"};
+
+    for (int i = 0; i < palos.size(); ++i){
+        for (int j = 0; j < nombres.size(); ++j){
+            Carta carta;
+            carta.nombre = nombres[j];
+
+            //asignar el valor de la carta
+            if(nombres[j] == "A"){
+                carta.valor = 11;
+            }else if(nombres[j] == "J" || nombres[j] == "Q" || nombres[j] == "K"){
+                carta.valor = 10;
+            }else{
+                carta.valor = stoi(nombres[j]); //convierte "2"-"10" en número
+            }
+
+            carta.rutaImagen = "imagenes/cartas/" + nombres[j] + "_" + palos[i] + ".png";
+
+            mazo.push_back(carta); //agrega carta al final del vector "mazo"
+        }
+    }
+}
+
 
 
 
