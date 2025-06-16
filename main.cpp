@@ -284,8 +284,41 @@ void mostrarAcercaDe(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonVolve
 
 void mostrarVentanaRegistro(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonEmpezar, int mouseX, int mouseY, string& nombreJugador, bool& entradaActiva) {
     //fondo negro
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
+     //cargar imagen de fondo
+    SDL_Surface* fondoSurface = IMG_Load("imagenes/registro.png");
+    if (fondoSurface){
+        SDL_Texture* fondoRegistro = SDL_CreateTextureFromSurface(renderer, fondoSurface);
+        if (fondoRegistro){
+            int imgW = fondoSurface->w;
+            int imgH = fondoSurface->h;
+
+            //cubrir la ventana sin deformaciones
+            float scaleX = static_cast<float>(SCREEN_WIDTH) / imgW;
+            float scaleY = static_cast<float>(SCREEN_HEIGHT) / imgH;
+            float scale = (scaleX > scaleY) ? scaleX : scaleY;
+
+            int newW = static_cast<int>(imgW * scale);
+            int newH = static_cast<int>(imgH * scale);
+
+            //centrar la imagen
+            SDL_Rect dstRect ={
+                (SCREEN_WIDTH - newW)/2,
+                (SCREEN_HEIGHT - newH)/2,
+                newW,
+                newH
+            };
+
+                        SDL_RenderCopy(renderer, fondoRegistro, nullptr, &dstRect);
+            SDL_DestroyTexture(fondoRegistro);
+        }else{
+            SDL_Log("No se pudo crear textura de fondo_registro.png: %s", SDL_GetError());
+        }
+        SDL_FreeSurface(fondoSurface);
+    }else{
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        SDL_Log("No se pudo cargar fondo_registro.png: %s", IMG_GetError());
+    }
 
     //titulo
     const char* titulo = "Ingresa tu nombre";
