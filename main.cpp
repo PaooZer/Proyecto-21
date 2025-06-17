@@ -34,7 +34,9 @@ struct juegoBlackJack {
     vector<Carta> manoDealer;
     EstadoJuego estado = MENU_INICIAL;
     string nombreJugador;
-};
+    bool turnoJugador = true; //controla si el jugador puede actuar
+    string mensajeResultado; //mensaje de resultado
+}juego;
 
 
 // ***** PROTOTIPOS *****
