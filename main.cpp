@@ -489,6 +489,15 @@ void MostrarCartas(SDL_Renderer* renderer, SDL_Rect botonPedir, SDL_Rect botonPl
     }
 }
 
+Carta DarCarta(vector<Carta>& baraja) {
+    if (baraja.empty()) {
+        return Carta{"", 0, ""}; //por si no hay cartas que dar
+    }
+
+    Carta carta = baraja.back();  //obtiene la ultima carta del vector
+    baraja.pop_back();            //la elimina del mazo
+    return carta;                 //devuelve la carta para usarla
+}
 
 
 
