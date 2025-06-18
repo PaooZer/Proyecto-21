@@ -499,7 +499,26 @@ Carta DarCarta(vector<Carta>& baraja) {
     return carta;                 //devuelve la carta para usarla
 }
 
+int calcularPuntaje(const vector<Carta>& mano){
+    int puntaje = 0;
+    int cantidadAses = 0;
 
+    for (int i = 0; i < mano.size(); ++i){
+        if (mano[i].nombre == "A") {
+            cantidadAses++;
+            puntaje += 11;  //Cuenta el  As como 11 inicialmente
+        } else {
+            puntaje += mano[i].valor;
+        }
+    }
+
+    while (puntaje > 21 && cantidadAses > 0){
+        puntaje -= 10;  //cambia un As de 11 a 1
+        cantidadAses--;
+    }
+
+    return puntaje;
+}
 
 
 
