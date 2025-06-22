@@ -519,6 +519,13 @@ int calcularPuntaje(const vector<Carta>& mano){
 
     return puntaje;
 }
+string obtenerFechaActual(){
+    time_t ahora = time(nullptr);
+    tm* tiempo = localtime(&ahora);
+    char buffer[11];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d", tiempo);
+    return string(buffer);
+}
 
 
 
