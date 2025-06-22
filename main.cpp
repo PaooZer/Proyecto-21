@@ -5,9 +5,12 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <sstream>  
 #include<cstdlib>
 #include<ctime>
 #include<algorithm> //para swap
+#include <fstream> //para archivos txt
+#include <filesystem> //para listar todos los archivos .txt
 
 using namespace std;
 const int SCREEN_WIDTH = 800;
@@ -36,7 +39,18 @@ struct juegoBlackJack {
     string nombreJugador;
     bool turnoJugador = true; //controla si el jugador puede actuar
     string mensajeResultado; //mensaje de resultado
+    int victorias = 0;
+    int derrotas = 0;
+    int empates = 0;
 }juego;
+
+struct partidaInfo {
+    string nombre;
+    int victorias;
+    int derrotas;
+    int empates;
+    string fecha;
+}part;
 
 
 // ***** PROTOTIPOS *****
@@ -48,7 +62,7 @@ void renderTexto(const char* texto, SDL_Rect& rect, SDL_Color color, SDL_Rendere
 void dibujarBotonRedondeado(SDL_Renderer* renderer, SDL_Rect rect, SDL_Color color, const char* texto, SDL_Color colorTexto, TTF_Font* font);
 void mostrarAcercaDe(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonVolver, int mouseX, int mouseY); //hay que progamarla y agregar boton de volver
 void mostrarVentanaRegistro(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonEmpezar, int mouseX, int mouseY, string& nombreJugador, bool& entradaActiva);
-///////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void iniciarNuevaPartida();  // inicializa todo para empezar una nueva ronda
 void crearBaraja(vector<Carta>& mazo); // crea y devuelve las cartas
 void barajearMazo(vector<Carta>& mazo); // barajea las cartas
@@ -56,8 +70,13 @@ void MostrarCartas(SDL_Renderer* renderer);
 Carta DarCarta(vector<Carta>& baraja);   //da una carta de la baraja y la elimina del vector
 int calcularPuntaje(const vector<Carta>& mano); // calcula el valor total de una mano
 void manejarEventosJuego(int x, int y, SDL_Rect botonPedir, SDL_Rect botonPlantarse, SDL_Rect botonReiniciar, SDL_Rect botonSalir, EstadoJuego& estado);
+void guardarPartida(const string& nombreJugador, int victorias, int derrotas, int empates); //para poder cargar las partidas (archivo txt)
+bool cargarPartida(const string& nombreJugador, int& victorias, int& derrotas, int& empates, string& fecha); //cargar partida asociada al jugador
+void mostrarVentanaCargar(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonCargarJuego, int mouseX, int mouseY, string& nombreJugador, bool& entradaActiva, EstadoJuego& estado);
+vector<partidaInfo> obtenerPartidasGuardadas();
+string obtenerFechaActual();
 
-// ***** VARIABLES GLOBALES *****
+// ***** VARIABLES DINAMICAS *****
 
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
@@ -82,6 +101,7 @@ int main(int argc, char* argv[]) {
     SDL_Rect botonPlantarse = { SCREEN_WIDTH - 20 - 120, SCREEN_HEIGHT - 20 - 40, 120, 40 };
     SDL_Rect botonReiniciar = { SCREEN_WIDTH - 20 - 120, SCREEN_HEIGHT - 20 - 40 - 10 - 40, 120, 40 };
     SDL_Rect botonSalir = { SCREEN_WIDTH - 20 - 120, SCREEN_HEIGHT - 20 - 40, 120, 40 };
+    SDL_Rect botonCargarJuego = { SCREEN_WIDTH - 150 - 20, SCREEN_HEIGHT - 50 - 20, 150, 50 }; 
 
     string nombreInput = "";
     bool entradaActiva = false;
@@ -99,45 +119,75 @@ int main(int argc, char* argv[]) {
             if (event.type == SDL_QUIT){
                 quit = true;
             }
+
             if (event.type == SDL_MOUSEBUTTONDOWN){
                 int x = event.button.x;
                 int y = event.button.y;
 
                 if (estado == MENU_INICIAL && estaEncima(botonEmpezar, x, y)){
                     estado = MENU_PRINCIPAL;
-                }else if (estado == MENU_PRINCIPAL){
+                }else if (estado == MENU_PRINCIPAL) {
                     if (estaEncima(botonNueva, x, y)){
                         estado = NUEVA_PARTIDA;
                         nombreInput = "";
                         entradaActiva = true;
-                    }else if (estaEncima(botonCargar, x, y)){
+                    }else if (estaEncima(botonCargar, x, y)) {
                         estado = CARGAR_PARTIDA;
-                    }else if (estaEncima(botonAcerca, x, y)){
+                    }else if (estaEncima(botonAcerca, x, y)) {
                         estado = ACERCA_DE_NOSOTROS;
                     }
                 }else if (estado == ACERCA_DE_NOSOTROS && estaEncima(botonVolver, x, y)){
                     estado = MENU_PRINCIPAL;
                 }else if (estado == NUEVA_PARTIDA && estaEncima(botonEmpezarJuego, x, y)){
-                    if (!nombreInput.empty()){
+                    if (!nombreInput.empty()) {
                         juego.nombreJugador = nombreInput;
+                        juego.victorias = 0;
+                        juego.derrotas = 0;
+                        juego.empates = 0;
                         iniciarNuevaPartida();
                         estado = JUGANDO;
+                        entradaActiva = false;
+                    }
+                }else if (estado == CARGAR_PARTIDA && estaEncima(botonCargarJuego, x, y)){
+                    if (!nombreInput.empty()) {
+                        juego.nombreJugador = nombreInput;
+                        if (cargarPartida(juego.nombreJugador, juego.victorias, juego.derrotas, juego.empates, part.fecha)){
+                            iniciarNuevaPartida(); //iniciar partida con contadores cargados
+                            estado = JUGANDO;
+                        }else{
+                            juego.mensajeResultado = "No se encontro la partida";
+                            estado = MENU_PRINCIPAL;
+                        }
                         entradaActiva = false;
                     }
                 }else if (estado == JUGANDO){
                     manejarEventosJuego(x, y, botonPedir, botonPlantarse, botonReiniciar, botonSalir, estado);
                 }
             }
-            if (estado == NUEVA_PARTIDA && entradaActiva){
-                if (event.type == SDL_TEXTINPUT) {
+
+            if ((estado == NUEVA_PARTIDA || estado == CARGAR_PARTIDA) && entradaActiva){
+                if (event.type == SDL_TEXTINPUT){
                     nombreInput += event.text.text;
-                }else if (event.type == SDL_KEYDOWN) {
+                }else if (event.type == SDL_KEYDOWN){
                     if (event.key.keysym.sym == SDLK_BACKSPACE && !nombreInput.empty()){
                         nombreInput.pop_back();
                     }else if (event.key.keysym.sym == SDLK_RETURN && !nombreInput.empty()){
                         juego.nombreJugador = nombreInput;
-                        iniciarNuevaPartida();
-                        estado = JUGANDO;
+                        if (estado == NUEVA_PARTIDA){
+                            juego.victorias = 0;
+                            juego.derrotas = 0;
+                            juego.empates = 0;
+                            iniciarNuevaPartida();
+                            estado = JUGANDO;
+                        }else if (estado == CARGAR_PARTIDA){
+                            if (cargarPartida(juego.nombreJugador, juego.victorias, juego.derrotas, juego.empates, part.fecha)) {
+                                iniciarNuevaPartida();
+                                estado = JUGANDO;
+                            }else{
+                                juego.mensajeResultado = "No se encontro la partida";
+                                estado = MENU_PRINCIPAL;
+                            }
+                        }
                         entradaActiva = false;
                     }
                 }
@@ -161,6 +211,8 @@ int main(int argc, char* argv[]) {
             dibujarBotonRedondeado(renderer, botonAcerca, estaEncima(botonAcerca, mouseX, mouseY) ? SDL_Color{180, 180, 180, 255} : SDL_Color{100, 100, 100, 255}, "Acerca de Nosotras", blanco, font);
         }else if (estado == NUEVA_PARTIDA){
             mostrarVentanaRegistro(renderer, font, botonEmpezarJuego, mouseX, mouseY, nombreInput, entradaActiva);
+        }else if (estado == CARGAR_PARTIDA){
+            mostrarVentanaCargar(renderer, font, botonCargarJuego, mouseX, mouseY, nombreInput, entradaActiva, estado);
         }else if (estado == JUGANDO){
             MostrarCartas(renderer, botonPedir, botonPlantarse, botonReiniciar, botonSalir);
         }else if (estado == ACERCA_DE_NOSOTROS){
@@ -519,6 +571,8 @@ int calcularPuntaje(const vector<Carta>& mano){
 
     return puntaje;
 }
+
+
 string obtenerFechaActual(){
     time_t ahora = time(nullptr);
     tm* tiempo = localtime(&ahora);
@@ -527,6 +581,194 @@ string obtenerFechaActual(){
     return string(buffer);
 }
 
+void manejarEventosJuego(int x, int y, SDL_Rect botonPedir, SDL_Rect botonPlantarse, SDL_Rect botonReiniciar, SDL_Rect botonSalir, EstadoJuego& estado) {
+    if (juego.turnoJugador) {
+        if (estaEncima(botonPedir, x, y)) {
+            juego.manoJugador.push_back(DarCarta(juego.mazo));
+            SDL_Log("Jugador pide carta. Mano size: %zu", juego.manoJugador.size());
+            if (calcularPuntaje(juego.manoJugador) > 21) {
+                juego.turnoJugador = false;
+                juego.mensajeResultado = "Te pasaste, Dealer gana :(";
+                juego.derrotas++;
+                guardarPartida(juego.nombreJugador, juego.victorias, juego.derrotas, juego.empates);
+                SDL_Log("Jugador se pasa");
+                MostrarCartas(renderer, botonPedir, botonPlantarse, botonReiniciar, botonSalir);
+                SDL_RenderPresent(renderer);
+            }
+        } else if (estaEncima(botonPlantarse, x, y)) {
+            juego.turnoJugador = false;
+            SDL_Log("Jugador se planta");
+            // SDL_Log("Dealer inicial: %zu cartas, Puntaje: %d", juego.manoDealer.size(), calcularPuntaje(juego.manoDealer));
+            while (calcularPuntaje(juego.manoDealer) < 17) {
+                juego.manoDealer.push_back(DarCarta(juego.mazo));
+                SDL_Log("Dealer pide carta. Mano size: %zu", juego.manoDealer.size());
+            }
+            // SDL_Log("Dealer final: %zu cartas, Puntaje: %d", juego.manoDealer.size(), calcularPuntaje(juego.manoDealer));
+            int puntajeJugador = calcularPuntaje(juego.manoJugador);
+            int puntajeDealer = calcularPuntaje(juego.manoDealer);
+            if (puntajeDealer > 21){
+                juego.mensajeResultado = "Ganaste, Dealer se paso.";
+                juego.victorias++;
+            }else if (puntajeJugador > puntajeDealer){
+                juego.mensajeResultado = "Ganaste";
+                juego.victorias++;
+            }else if (puntajeDealer > puntajeJugador){
+                juego.mensajeResultado = "Dealer gana.";
+                juego.derrotas++;
+            }else{
+                juego.mensajeResultado = "Empate.";
+                juego.empates++;
+                juego.derrotas++;
+            }
+            guardarPartida(juego.nombreJugador, juego.victorias, juego.derrotas, juego.empates);
+            SDL_Log("Resultado: %s", juego.mensajeResultado.c_str());
+            MostrarCartas(renderer, botonPedir, botonPlantarse, botonReiniciar, botonSalir);
+            SDL_RenderPresent(renderer);
+        }
+    }else{
+        if (estaEncima(botonReiniciar, x, y)){
+            iniciarNuevaPartida();
+            //SDL_Log("Partida reiniciada");
+            MostrarCartas(renderer, botonPedir, botonPlantarse, botonReiniciar, botonSalir);
+            SDL_RenderPresent(renderer);
+        }else if (estaEncima(botonSalir, x, y)){
+            estado = MENU_PRINCIPAL;
+            juego.turnoJugador = true;
+            juego.mensajeResultado = "";
+           // SDL_Log("Saliendo a menu principal");
+        }
+    }
+}
 
+void mostrarVentanaCargar(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonCargar, int mouseX, int mouseY, string& nombreJugador, bool& entradaActiva, EstadoJuego& estado) {
+    SDL_Surface* fondoSurface = IMG_Load("imagenes/cargar.png");
+    if (fondoSurface){
+        SDL_Texture* fondoRegistro = SDL_CreateTextureFromSurface(renderer, fondoSurface);
+        if (fondoRegistro) {
+            int imgW = fondoSurface->w;
+            int imgH = fondoSurface->h;
+            float scaleX = static_cast<float>(SCREEN_WIDTH) / imgW;
+            float scaleY = static_cast<float>(SCREEN_HEIGHT) / imgH;
+            float scale = (scaleX > scaleY) ? scaleX : scaleY;
+            int newW = static_cast<int>(imgW * scale);
+            int newH = static_cast<int>(imgH * scale);
+            SDL_Rect dstRect = {
+                (SCREEN_WIDTH - newW)/2,
+                (SCREEN_HEIGHT - newH)/2,
+                newW,
+                newH
+            };
+            SDL_RenderCopy(renderer, fondoRegistro, nullptr, &dstRect);
+            SDL_DestroyTexture(fondoRegistro);
+        }else{
+            SDL_Log("No se pudo crear textura de fondo_cargar.png: %s", SDL_GetError());
+        }
+        SDL_FreeSurface(fondoSurface);
+    }else{
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        SDL_Log("No se pudo cargar fondo_cargar.png: %s", IMG_GetError());
+    }
+
+    const char* titulo = "Selecciona una partida";
+    SDL_Rect rectTitulo = {0, 50, SCREEN_WIDTH, 50};
+    renderTexto(titulo, rectTitulo, {255, 255, 255}, renderer, font);
+
+    vector<partidaInfo> partidas = obtenerPartidasGuardadas();
+    SDL_Rect botonVolver = {50, SCREEN_HEIGHT - 70, 150, 50};
+    SDL_Color blanco = {255, 255, 255};
+
+    if (partidas.empty()){
+        SDL_Rect rectMensaje = {0, 200, SCREEN_WIDTH, 50};
+        renderTexto("No hay partidas guardadas", rectMensaje, blanco, renderer, font);
+    }else{
+        int yInicial = 150;
+        int altoBoton = 60;
+        int espacio = 10;
+        static vector<SDL_Rect> botonesPartidas;
+        botonesPartidas.clear();
+
+        for (size_t i = 0; i < partidas.size(); ++i){
+            SDL_Rect rectBoton = {200, static_cast<int>(yInicial + i * (altoBoton + espacio)), 400, altoBoton};
+            botonesPartidas.push_back(rectBoton);
+
+            string texto = partidas[i].nombre + " (G: " + to_string(partidas[i].victorias) + 
+                          " P: " + to_string(partidas[i].derrotas) + " E: " + to_string(partidas[i].empates) + 
+                          " - " + partidas[i].fecha + ")";
+            SDL_Color colorBoton = estaEncima(rectBoton, mouseX, mouseY) ? SDL_Color{180, 180, 180, 255} : SDL_Color{100, 100, 100, 255};
+            dibujarBotonRedondeado(renderer, rectBoton, colorBoton, texto.c_str(), blanco, font);
+
+            if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)){
+                if (estaEncima(rectBoton, mouseX, mouseY)){
+                    juego.nombreJugador = partidas[i].nombre;
+                    string fecha;
+                    if (cargarPartida(juego.nombreJugador, juego.victorias, juego.derrotas, juego.empates, fecha)) {
+                        iniciarNuevaPartida();
+                        estado = JUGANDO;
+                    }
+                }
+            }
+        }
+    }
+
+    SDL_Color colorVolver = estaEncima(botonVolver, mouseX, mouseY) ? SDL_Color{180, 180, 180, 255} : SDL_Color{100, 100, 100, 255};
+    dibujarBotonRedondeado(renderer, botonVolver, colorVolver, "Volver", blanco, font);
+
+    // Manejar clic en "Volver"
+    if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)){
+        if (estaEncima(botonVolver, mouseX, mouseY)){
+            estado = MENU_PRINCIPAL;
+        }
+    }
+}
+
+bool cargarPartida(const string& nombreJugador, int& victorias, int& derrotas, int& empates, string& fecha){
+    ifstream archivo; //para leer 
+    archivo.open("partidas/" + nombreJugador + ".txt", ios::in);
+    if (archivo.is_open()){ //verifica que el archivo existe y se abrio correctamente.
+        string primeraLinea;
+        getline(archivo, primeraLinea);
+       if (primeraLinea.length() == 10 && primeraLinea[4] == '-' && primeraLinea[7] == '-'){
+            fecha = primeraLinea;
+            if (archivo >> victorias >> derrotas >> empates){
+                archivo.close();
+                return true;
+            }else{
+                archivo.close();
+                SDL_Log("Formato invalido en partidas/%s.txt", nombreJugador.c_str());
+                return false;
+            }
+        }else{
+            fecha = "Sin fecha";
+            stringstream ss(primeraLinea + "\n" + string(istreambuf_iterator<char>(archivo), {}));
+            if (ss >> victorias >> derrotas >> empates){
+                archivo.close();
+                return true;
+            }else{
+                archivo.close();
+                SDL_Log("Formato invalido en partidas/%s.txt", nombreJugador.c_str());
+                return false;
+            }
+        }
+    }else{
+        SDL_Log("No se encontro partidas/%s.txt", nombreJugador.c_str());
+        return false;
+    }
+}
+
+vector<partidaInfo> obtenerPartidasGuardadas(){
+    vector<partidaInfo> partidas;
+    for (const auto& entry : filesystem::directory_iterator("partidas")){
+        if (entry.path().extension() == ".txt") {
+            string nombre = entry.path().stem().string();
+            int victorias, derrotas, empates;
+            string fecha;
+            if (cargarPartida(nombre, victorias, derrotas, empates, fecha)){
+                partidas.push_back({nombre, victorias, derrotas, empates, fecha});
+            }
+        }
+    }
+    return partidas;
+}
 
 
