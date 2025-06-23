@@ -63,7 +63,7 @@ void dibujarBotonRedondeado(SDL_Renderer* renderer, SDL_Rect rect, SDL_Color col
 void mostrarAcercaDe(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonVolver, int mouseX, int mouseY); //hay que progamarla y agregar boton de volver
 void mostrarVentanaRegistro(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonEmpezar, int mouseX, int mouseY, string& nombreJugador, bool& entradaActiva);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void iniciarNuevaPartida();  // inicializa todo para empezar una nueva ronda
+void iniciarNuevaPartida(SDL_Renderer* renderer, SDL_Rect botonPedir, SDL_Rect botonPlantarse, SDL_Rect botonReiniciar, SDL_Rect botonSalir);  // inicializa todo para empezar una nueva ronda
 void crearBaraja(vector<Carta>& mazo); // crea y devuelve las cartas
 void barajearMazo(vector<Carta>& mazo); // barajea las cartas
 void MostrarCartas(SDL_Renderer* renderer);
@@ -72,7 +72,7 @@ int calcularPuntaje(const vector<Carta>& mano); // calcula el valor total de una
 void manejarEventosJuego(int x, int y, SDL_Rect botonPedir, SDL_Rect botonPlantarse, SDL_Rect botonReiniciar, SDL_Rect botonSalir, EstadoJuego& estado);
 void guardarPartida(const string& nombreJugador, int victorias, int derrotas, int empates); //para poder cargar las partidas (archivo txt)
 bool cargarPartida(const string& nombreJugador, int& victorias, int& derrotas, int& empates, string& fecha); //cargar partida asociada al jugador
-void mostrarVentanaCargar(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonCargarJuego, int mouseX, int mouseY, string& nombreJugador, bool& entradaActiva, EstadoJuego& estado);
+void mostrarVentanaCargar(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonCargar, int mouseX, int mouseY, string& nombreJugador, bool& entradaActiva, EstadoJuego& estado, SDL_Rect botonPedir, SDL_Rect botonPlantarse, SDL_Rect botonReiniciar, SDL_Rect botonSalir);
 vector<partidaInfo> obtenerPartidasGuardadas();
 string obtenerFechaActual();
 
@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
                         juego.victorias = 0;
                         juego.derrotas = 0;
                         juego.empates = 0;
-                        iniciarNuevaPartida();
+                        iniciarNuevaPartida(renderer, botonPedir, botonPlantarse, botonReiniciar, botonSalir);
                         estado = JUGANDO;
                         entradaActiva = false;
                     }
@@ -152,7 +152,7 @@ int main(int argc, char* argv[]) {
                     if (!nombreInput.empty()) {
                         juego.nombreJugador = nombreInput;
                         if (cargarPartida(juego.nombreJugador, juego.victorias, juego.derrotas, juego.empates, part.fecha)){
-                            iniciarNuevaPartida(); //iniciar partida con contadores cargados
+                            iniciarNuevaPartida(renderer, botonPedir, botonPlantarse, botonReiniciar, botonSalir); //iniciar partida con contadores cargados
                             estado = JUGANDO;
                         }else{
                             juego.mensajeResultado = "No se encontro la partida";
@@ -177,11 +177,11 @@ int main(int argc, char* argv[]) {
                             juego.victorias = 0;
                             juego.derrotas = 0;
                             juego.empates = 0;
-                            iniciarNuevaPartida();
+                            iniciarNuevaPartida(renderer, botonPedir, botonPlantarse, botonReiniciar, botonSalir);
                             estado = JUGANDO;
                         }else if (estado == CARGAR_PARTIDA){
                             if (cargarPartida(juego.nombreJugador, juego.victorias, juego.derrotas, juego.empates, part.fecha)) {
-                                iniciarNuevaPartida();
+                                iniciarNuevaPartida(renderer, botonPedir, botonPlantarse, botonReiniciar, botonSalir);
                                 estado = JUGANDO;
                             }else{
                                 juego.mensajeResultado = "No se encontro la partida";
@@ -460,9 +460,34 @@ void iniciarNuevaPartida(){
             //juego.manoDealer[0].rutaImagen.c_str(), juego.manoDealer[1].rutaImagen.c_str());
    // SDL_Log("Jugador carta 0: %s, carta 1: %s",
             //juego.manoJugador[0].rutaImagen.c_str(), juego.manoJugador[1].rutaImagen.c_str());
+   
+    //evaluar Blackjack 
+    int puntajeJugador = calcularPuntaje(juego.manoJugador);
+    int puntajeDealer = calcularPuntaje(juego.manoDealer);
 
-    juego.turnoJugador = true;
-    juego.mensajeResultado = "";
+    if (puntajeJugador == 21 && juego.manoJugador.size() == 2){ //Blackjack del jugador
+        if (puntajeDealer == 21 && juego.manoDealer.size() == 2){ //Blackjack del dealer
+            juego.mensajeResultado = "Empate, ambos tienen Blackjack";
+            juego.empates++;
+            juego.turnoJugador = false;
+        } else { // Jugador gana
+            juego.mensajeResultado = "Blackjack, Ganaste";
+            juego.victorias++;
+            juego.turnoJugador = false;
+        }
+        guardarPartida(juego.nombreJugador, juego.victorias, juego.derrotas, juego.empates);
+    }else if (puntajeDealer == 21 && juego.manoDealer.size() == 2) { // Solo dealer tiene Blackjack
+        juego.mensajeResultado = "Dealer tiene Blackjack, perdiste";
+        juego.derrotas++;
+        juego.turnoJugador = false;
+        guardarPartida(juego.nombreJugador, juego.victorias, juego.derrotas, juego.empates);
+    }else{
+        juego.turnoJugador = true;
+        juego.mensajeResultado = "";
+    }
+    MostrarCartas(renderer, botonPedir, botonPlantarse, botonReiniciar, botonSalir);
+    SDL_RenderPresent(renderer);
+   
     SDL_Log("Nueva partida iniciada. Turno jugador: %d", juego.turnoJugador);
 }
 
@@ -581,7 +606,7 @@ string obtenerFechaActual(){
     return string(buffer);
 }
 
-void manejarEventosJuego(int x, int y, SDL_Rect botonPedir, SDL_Rect botonPlantarse, SDL_Rect botonReiniciar, SDL_Rect botonSalir, EstadoJuego& estado) {
+void manejarEventosJuego(int x, int y, SDL_Rect botonPedir, SDL_Rect botonPlantarse, SDL_Rect botonReiniciar, SDL_Rect botonSalir, EstadoJuego& estado){
     if (juego.turnoJugador) {
         if (estaEncima(botonPedir, x, y)) {
             juego.manoJugador.push_back(DarCarta(juego.mazo));
@@ -627,7 +652,7 @@ void manejarEventosJuego(int x, int y, SDL_Rect botonPedir, SDL_Rect botonPlanta
         }
     }else{
         if (estaEncima(botonReiniciar, x, y)){
-            iniciarNuevaPartida();
+            iniciarNuevaPartida(renderer, botonPedir, botonPlantarse, botonReiniciar, botonSalir);
             //SDL_Log("Partida reiniciada");
             MostrarCartas(renderer, botonPedir, botonPlantarse, botonReiniciar, botonSalir);
             SDL_RenderPresent(renderer);
@@ -640,7 +665,7 @@ void manejarEventosJuego(int x, int y, SDL_Rect botonPedir, SDL_Rect botonPlanta
     }
 }
 
-void mostrarVentanaCargar(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonCargar, int mouseX, int mouseY, string& nombreJugador, bool& entradaActiva, EstadoJuego& estado) {
+void mostrarVentanaCargar(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect botonCargar, int mouseX, int mouseY, string& nombreJugador, bool& entradaActiva, EstadoJuego& estado, SDL_Rect botonPedir, SDL_Rect botonPlantarse, SDL_Rect botonReiniciar, SDL_Rect botonSalir){
     SDL_Surface* fondoSurface = IMG_Load("imagenes/cargar.png");
     if (fondoSurface){
         SDL_Texture* fondoRegistro = SDL_CreateTextureFromSurface(renderer, fondoSurface);
@@ -703,7 +728,7 @@ void mostrarVentanaCargar(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect boton
                     juego.nombreJugador = partidas[i].nombre;
                     string fecha;
                     if (cargarPartida(juego.nombreJugador, juego.victorias, juego.derrotas, juego.empates, fecha)) {
-                        iniciarNuevaPartida();
+                        iniciarNuevaPartida(renderer, botonPedir, botonPlantarse, botonReiniciar, botonSalir);
                         estado = JUGANDO;
                     }
                 }
