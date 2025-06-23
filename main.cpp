@@ -722,6 +722,19 @@ void mostrarVentanaCargar(SDL_Renderer* renderer, TTF_Font* font, SDL_Rect boton
     }
 }
 
+void guardarPartida(const string& nombreJugador, int victorias, int derrotas, int empates) {
+    ofstream archivo; //crear archivo 
+    archivo.open("partidas/" + nombreJugador + ".txt", ios::out);
+    if (archivo.is_open()){ //verifica que el archivo existe y se abrio correctamente.
+        archivo << obtenerFechaActual() << "\n";
+        archivo << victorias << "\n" << derrotas << "\n" << empates << "\n";
+        archivo.close();
+        SDL_Log("Partida guardada en partidas/%s.txt", nombreJugador.c_str());
+    } else {
+        SDL_Log("Error al guardar partida en partidas/%s.txt", nombreJugador.c_str());
+    }
+}
+
 bool cargarPartida(const string& nombreJugador, int& victorias, int& derrotas, int& empates, string& fecha){
     ifstream archivo; //para leer 
     archivo.open("partidas/" + nombreJugador + ".txt", ios::in);
